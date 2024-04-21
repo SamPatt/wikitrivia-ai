@@ -47,12 +47,11 @@ export default function Board(props: Props) {
 
   React.useEffect(() => {
     const aiDecisionProcess = async () => {
-      if (state.next && !hasAIAnswered) {
+      if (state.next && !hasAIAnswered && state.lives > 0) {
         setHasAIAnswered(true);
   
         try {
-          // Fetch the AI decision from the server
-          const content = state.next.description; // Assuming you want to send the description
+          const content = state.next.description;
           const position = await fetchAIResponse(content);
   
           const { correct, delta } = checkCorrect(
