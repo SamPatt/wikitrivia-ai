@@ -13,7 +13,23 @@ type Props = {
 };
 
 const datePropIdMap: { [datePropId: string]: string } = {
-  // Your mappings
+  P575: "discovered", // or invented
+  P7589: "date of assent",
+  P577: "published",
+  P1191: "first performed",
+  P1619: "officially opened",
+  P571: "created",
+  P1249: "earliest record",
+  P576: "ended",
+  P8556: "became extinct",
+  P6949: "announced",
+  P1319: "earliest",
+  P569: "born",
+  P570: "died",
+  P582: "ended",
+  P580: "started",
+  P7125: "latest one",
+  P7124: "first one",
 };
 
 function capitalize(str: string): string {
@@ -22,6 +38,7 @@ function capitalize(str: string): string {
 
 export default function ItemCard(props: Props) {
   const { flippedId, index, item, setFlippedId } = props;
+  console.log('Item:', item);
 
   const flipped = item.id === flippedId;
 
