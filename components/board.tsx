@@ -20,49 +20,80 @@ export default function Board(props: Props) {
 
   const [hasAIAnswered, setHasAIAnswered] = React.useState(false);
 
+  async function fetchAIResponse(content: string) {
+    console.log('Sending request to server with content:', content);
+    try {
+      const response = await fetch('http://localhost:3000/groq-chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ content })
+      });
+      console.log('Server response:', response);
+      if (!response.ok) {
+        throw new Error('Failed to fetch AI decision');
+      }
+      const data = await response.json();
+      console.log('Data received from server:', data);
+      return data.position;
+    } catch (error) {
+      console.error('Error fetching AI response:', error);
+      throw error;
+    }
+  }
+  
+  
+
   React.useEffect(() => {
     const aiDecisionProcess = async () => {
       if (state.next && !hasAIAnswered) {
         setHasAIAnswered(true);
-
-        // Simulate AI decision (replace this with actual LLM call)
-        const position = Math.floor(Math.random() * state.played.length); // This is a placeholder
-
-        const { correct, delta } = checkCorrect(
-          state.played,
-          state.next,
-          position
-        );
-        const newPlayed = [...state.played];
-        newPlayed.splice(position, 0, { ...state.next, played: { correct } });
-
-        const newNext = state.nextButOne;
-        const newDeck = [...state.deck];
-        const newNextButOne = getRandomItem(newDeck, [
-          ...newPlayed,
-          ...(newNext ? [newNext] : []),
-        ]);
-        const newImageCache = [preloadImage(newNextButOne.image)];
-
-        setState({
-          ...state,
-          deck: newDeck,
-          imageCache: newImageCache,
-          next: newNext,
-          nextButOne: newNextButOne,
-          played: newPlayed,
-          lives: correct ? state.lives : state.lives - 1,
-          badlyPlaced: correct
-            ? null
-            : { index: position, rendered: false, delta },
-        });
-
-        setHasAIAnswered(false);
+  
+        try {
+          // Fetch the AI decision from the server
+          const content = state.next.description; // Assuming you want to send the description
+          const position = await fetchAIResponse(content);
+  
+          const { correct, delta } = checkCorrect(
+            state.played,
+            state.next,
+            position
+          );
+          const newPlayed = [...state.played];
+          newPlayed.splice(position, 0, { ...state.next, played: { correct } });
+  
+          const newNext = state.nextButOne;
+          const newDeck = [...state.deck];
+          const newNextButOne = getRandomItem(newDeck, [
+            ...newPlayed,
+            ...(newNext ? [newNext] : []),
+          ]);
+          const newImageCache = [preloadImage(newNextButOne.image)];
+  
+          setState({
+            ...state,
+            deck: newDeck,
+            imageCache: newImageCache,
+            next: newNext,
+            nextButOne: newNextButOne,
+            played: newPlayed,
+            lives: correct ? state.lives : state.lives - 1,
+            badlyPlaced: correct
+              ? null
+              : { index: position, rendered: false, delta },
+          });
+        } catch (error) {
+          console.error('Failed to process AI decision:', error);
+        } finally {
+          setHasAIAnswered(false);
+        }
       }
     };
-
+  
     aiDecisionProcess();
-  }, [state, hasAIAnswered]);
+  }, [hasAIAnswered]);
+  
 
   const score = React.useMemo(() => {
     return state.played.filter((item) => item.played.correct).length - 1;

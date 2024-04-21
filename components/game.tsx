@@ -46,22 +46,6 @@ export default function Game() {
     })();
   }, [items]);
 
-  async function aiMove(currentState: GameState, newCard: Item): Promise<number> {
-    // Format the game state and the new card into a query for the LLM
-    // ...
-  
-    // Call the LLM API and get the response
-    // ...
-  
-    // Parse the response to determine the position
-    // ...
-  
-    // Return the position
-    // This is a placeholder; the actual implementation will vary
-    return position;
-  }
-  
-
   const resetGame = React.useCallback(() => {
     (async () => {
       if (items !== null) {
