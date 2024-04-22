@@ -38,7 +38,6 @@ function capitalize(str: string): string {
 
 export default function ItemCard(props: Props) {
   const { flippedId, index, item, setFlippedId } = props;
-  console.log('Item:', item);
 
   const flipped = item.id === flippedId;
 

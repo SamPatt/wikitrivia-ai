@@ -48,9 +48,10 @@ export function checkCorrect(
   });
 
   if (index !== correctIndex) {
+    console.log("Incorrectly placed item:", item.label, item.year);
     return { correct: false, delta: correctIndex - index };
   }
-
+  console.log("Correctly placed item:", item.label, item.year);
   return { correct: true, delta: 0 };
 }
 
