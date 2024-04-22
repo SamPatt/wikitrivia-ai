@@ -21,51 +21,37 @@ export default function Board(props: Props) {
 
   const [hasAIAnswered, setHasAIAnswered] = React.useState(false);
 
-  const datePropIdMap: { [key: string]: string } = {
-    P575: "discovered", // or invented
-    P7589: "date of assent",
-    P577: "published",
-    P1191: "first performed",
-    P1619: "officially opened",
-    P571: "created",
-    P1249: "earliest record",
-    P576: "ended",
-    P8556: "became extinct",
-    P6949: "announced",
-    P1319: "earliest",
-    P569: "born",
-    P570: "died",
-    P582: "ended",
-    P580: "started",
-    P7125: "latest one",
-    P7124: "first one",
-  };
-
   const createPromptForLLM = (played: PlayedItem[], next: Item) => {
-    // const playedCards = played.map((item, index) => ({
-    //   index,
-    //   year: item.year,
-    //   title: item.label,
-    //   description: item.description,
-    //   event: datePropIdMap[item.date_prop_id] || item.date_prop_id,
-    // }));
-
-    const nextCard = {
-      label: next.label,
-      description: next.description,
-      event: datePropIdMap[next.date_prop_id] || next.date_prop_id,
+    // This map needs to be accessible within this function
+    const datePropIdMap: { [key: string]: string | undefined } = {
+        P575: "discovered",
+        P7589: "date of assent",
+        P577: "published",
+        P1191: "first performed",
+        P1619: "officially opened",
+        P571: "created",
+        P1249: "earliest record",
+        P576: "ended",
+        P8556: "became extinct",
+        P6949: "announced",
+        P1319: "earliest",
+        P569: "born",
+        P570: "died",
+        P582: "ended",
+        P580: "started",
+        P7125: "latest one",
+        P7124: "first one",
     };
 
-    const instructions = "You are playing a historical trivia game. Your task is to respond with the closest year to the event described on the card. If you are unsure, you must guess a valid year anyway. Only respond with a year, which is either a positive or negative integer. Don't use the characters BC or BCE or CE or AD, only use positive or negative integers. For example, if an event ocurred in 500 BC, you would respond -500. 1952 AD, you would respond 1952. No other information is required.";
+    const nextEvent = datePropIdMap[next.date_prop_id] || next.date_prop_id;
+    const nextCardDescription = next.description;
+    const nextCardLabel = next.label;
 
-    const promptPayload = {
-      instructions,
-      nextCard,
-      //playedCards
-    };
+    const prompt = `You are playing a historical trivia game. Here's your next card: "${nextCardLabel}", which is described as "${nextCardDescription}" and relates to when it was "${nextEvent}". Please predict the closest year this event occurred. Respond with just a number, positive or negative (no 'BC', 'BCE', 'CE', 'AD'). For example, respond '-500' for 500 BC and '1952' for 1952 AD, without quotation marks. Ensure that all responses before 0 include a negative sign: '-500'. Think about.`;
 
-    return JSON.stringify(promptPayload);
+    return prompt;
 };
+
 
 async function fetchAIResponse(content: string) {
   console.log("Sending request to server with content:", content);
