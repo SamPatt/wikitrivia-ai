@@ -22,7 +22,6 @@ export default function Board(props: Props) {
   const [hasAIAnswered, setHasAIAnswered] = React.useState(false);
 
   const createPromptForLLM = (played: PlayedItem[], next: Item) => {
-    // This map needs to be accessible within this function
     const datePropIdMap: { [key: string]: string | undefined } = {
         P575: "discovered",
         P7589: "date of assent",
@@ -44,22 +43,27 @@ export default function Board(props: Props) {
     };
 
     const nextEvent = datePropIdMap[next.date_prop_id] || next.date_prop_id;
-    const nextCardDescription = next.description;
     const nextCardLabel = next.label;
+    const nextCardDescription = next.description;
 
-    const prompt = `You are playing a historical trivia game. Here's your next card: "${nextCardLabel}", which is described as "${nextCardDescription}" and relates to when it was "${nextEvent}". Please predict the closest year this event occurred. Respond with just a number, positive or negative (no 'BC', 'BCE', 'CE', 'AD'). For example, respond '-500' for 500 BC and '1952' for 1952 AD, without quotation marks. Ensure that all responses before 0 include a negative sign: '-500'. Think about.`;
+    const prompt = `You are playing a historical trivia game. Your task is to analyze the event "${nextCardLabel}", described as "${nextCardDescription}" and categorized under "${nextEvent}". Please predict two possible years for when this event could have occurred, providing a brief explanation for each guess. Conclude by selecting the year you believe is most accurate from your guesses. Respond solely with JSON, in the following JSON format, filling in the final "year" field with your best guess:
+    {
+        "guesses": [
+            {"explanation": "Corresponds to a significant historical event at 420 BCE.", "yearOneGuess": -420},
+            {"explanation": "Marks an important discovery that shaped modern history.", "yearTwoGuess": 1492}
+        ],
+        "year":"
+    }`;
 
     return prompt;
 };
 
 
-async function fetchAIResponse(content: string) {
-  console.log("Sending request to server with content:", content);
 
-  let isValidYear = false;
+async function fetchAIResponse(content: string) {
   let attempts = 0;
 
-  while (!isValidYear && attempts < 5) {  // Limit the number of retries to prevent infinite loops
+  while (attempts < 3) {
       attempts++;
       try {
           const response = await fetch("http://localhost:3000/groq-chat", {
@@ -69,31 +73,50 @@ async function fetchAIResponse(content: string) {
               },
               body: JSON.stringify({ content }),
           });
-          console.log("Server response:", response);
           if (!response.ok) {
               throw new Error("Failed to fetch AI decision");
           }
-          const data = await response.json();
-          console.log("Data received from server:", data);
+          const data = await response.json();  // This is the outer JSON
+          console.log("Outer JSON data from server:", data);
 
-          // Check if the response is a valid year
-          const yearPattern = /^-?\d+$/;  // Regex for a valid integer (positive or negative)
-          if (yearPattern.test(data.content)) {
-              console.log("Valid year received:", data.content);
-              isValidYear = true;
-              return parseInt(data.content, 10);  // Convert string to integer
+          // Check if 'content' field exists and parse it
+          if (data.content) {
+              const innerJsonData = JSON.parse(data.content);  // Parse the JSON string from 'content'
+              console.log("Parsed inner JSON data:", innerJsonData);
+
+              // Now extract the 'year' from the inner JSON
+              if (innerJsonData && innerJsonData.year && /^-?\d+$/.test(innerJsonData.year.toString())) {
+                  console.log("Valid year received:", innerJsonData.year);
+                  return parseInt(innerJsonData.year, 10);  // Convert and return the year
+              } else {
+                  console.log("No valid year found or malformed JSON structure in the content:", innerJsonData);
+
+                  // Attempt to extract year using regex from the JSON string if no valid year is found in the parsed JSON
+                  const yearMatch = data.content.match(/"year"\s*:\s*(-?\d+)/);
+                  if (yearMatch && yearMatch[1]) {
+                      console.log("Extracted year from malformed JSON:", yearMatch[1]);
+                      return parseInt(yearMatch[1], 10);
+                  } else {
+                      console.log("Failed to parse year from JSON string, sending request again.");
+                      content = "Please send a valid year in the requested JSON format. No other comments are necessary.";
+                  }
+              }
           } else {
-              console.log("Invalid year received, sending request again:", data.content);
-              content = "Please send a valid year.";  // Change the prompt to request a valid year
+              console.log("No 'content' field found in the server response, retrying...");
           }
       } catch (error) {
           console.error("Error fetching AI response:", error);
-          throw error;  // Re-throw the error if it's a fetch failure or other critical issue
+          if (attempts >= 3) {  // Only throw an error after all retries fail
+              throw error;
+          }
       }
   }
 
-  throw new Error("Failed to receive a valid year after several attempts.");
+  throw new Error("Failed to receive a valid year after three attempts.");
 }
+
+
+
 
 function findPositionByYear(played: PlayedItem[], year: number): number {
   const sorted = [...played];
@@ -111,7 +134,6 @@ function findPositionByYear(played: PlayedItem[], year: number): number {
 
         try {
           const promptContent = createPromptForLLM(state.played, state.next);
-          console.log("Prompt content:", promptContent);
           const predictedYear = await fetchAIResponse(promptContent);
           const position = findPositionByYear(state.played, predictedYear);
 

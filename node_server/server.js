@@ -10,16 +10,13 @@ const groq = new Groq({
     apiKey: process.env.GROQ_API_KEY
 });
 
-// Middleware to parse JSON bodies
 app.use(bodyParser.json());
 
 app.use(cors());
 
-
-// POST endpoint to receive content and return Groq API responses
 app.post('/groq-chat', async (req, res) => {
     const { content } = req.body;
-    console.log(content);
+    //console.log(content);
     if (!content) {
         return res.status(400).json({ error: 'Content is required' });
     }
