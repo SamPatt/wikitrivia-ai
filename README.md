@@ -1,3 +1,7 @@
+# WikiTrivia, AI version
+
+I took the original and added AI. And some Llama gifs.
+
 # Wiki Trivia
 
 This is the source code for the web app at https://wikitrivia.tomjwatson.com.
