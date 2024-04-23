@@ -1,6 +1,9 @@
 import { Item, PlayedItem } from "../types/item";
 import { createWikimediaImage } from "./image";
 
+const correctSound = new Audio('/sounds/goodbeep.wav');
+const wrongSound = new Audio('/sounds/error.wav');
+
 export function getRandomItem(deck: Item[], played: Item[]): Item {
   const periods: [number, number][] = [
     [-100000, 1000],
@@ -29,6 +32,23 @@ export function getRandomItem(deck: Item[], played: Item[]): Item {
   return deck[Math.floor(Math.random() * deck.length)];
 }
 
+const playSound = (soundType: string) => {
+  switch (soundType) {
+    case 'correct':
+      correctSound.currentTime = 0;
+      correctSound.volume = 0.3;
+      correctSound.play();
+      break;
+    case 'wrong':
+      wrongSound.currentTime = 0;
+      wrongSound.volume = 0.3;
+      wrongSound.play();
+      break;
+    default:
+      console.log('No sound for this type');
+  }
+};
+
 function tooClose(item: Item, played: Item[]) {
   let distance = (played.length < 40) ? 5 : 1;
   if (played.length < 11)
@@ -48,10 +68,12 @@ export function checkCorrect(
   });
 
   if (index !== correctIndex) {
+    playSound('wrong');
     console.log("Incorrectly placed item:", item.label, item.year);
     return { correct: false, delta: correctIndex - index };
   }
   console.log("Correctly placed item:", item.label, item.year);
+  playSound('correct');
   return { correct: true, delta: 0 };
 }
 

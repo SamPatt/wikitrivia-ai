@@ -7,7 +7,30 @@
 }
 
 .top {
+  display: flex;
+  align-items: center;
   grid-row: 1;
+}
+
+.topLeft {
+  flex: 1;  // Take up 1 part of the available space
+  display: flex;
+  justify-content: center;  // Center the loading gif horizontally
+  align-items: center;  // Center the loading gif vertically
+}
+
+.topCenter {
+  flex: 1; 
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.topRight {
+  flex: 4; 
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
 }
 
 .bottom {
@@ -18,11 +41,14 @@
   position: relative;
 }
 
-.loading {
-  color: blue;
-  font-size: 16px;
-  text-align: center;
-  padding: 10px;
+.loadingGif {
+  width: 200px;  // Adjust width as necessary
+  height: 200px; // Adjust height as necessary
+}
+
+.gameOverGif {
+  width: 400px;  // Adjust width as necessary
+  height: 300px; // Adjust height as necessary
 }
 
 .error {
@@ -30,4 +56,30 @@
   font-size: 16px;
   text-align: center;
   padding: 10px;
+  width: 100%;  // Ensure the error message takes the full width of the container
+}
+
+@keyframes growAndShake {
+  0%, 100% {
+    transform: scale(calc(1 + var(--scale-factor))) translateX(0);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: scale(calc(1.1 + var(--scale-factor))) translateX(-10px);
+  }
+  20%, 40%, 60%, 80% {
+    transform: scale(calc(1.1 + var(--scale-factor))) translateX(10px);
+  }
+}
+
+.score-animation {
+  --scale-factor: 0; /* Initial scale factor */
+  animation: growAndShake 0.8s ease-out;
+}
+
+
+
+.streak {
+  font-size: 50px; /* Normal font size */
+  transition: font-size 0.5s ease-in-out;
+  color: green;
 }

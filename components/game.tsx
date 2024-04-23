@@ -1,5 +1,4 @@
-import React, { useState } from "react";
-import axios from "axios";
+import React, { useState, useEffect, useCallback } from "react";
 import { GameState } from "../types/game";
 import { Item } from "../types/item";
 import createState from "../lib/create-state";
@@ -14,47 +13,37 @@ export default function Game() {
   const [started, setStarted] = useState(false);
   const [items, setItems] = useState<Item[] | null>(null);
 
-  React.useEffect(() => {
-    const fetchGameData = async () => {
-      const res = await axios.get<string>(
-        "https://wikitrivia-data.tomjwatson.com/items.json"
-      );
-      const items: Item[] = res.data
-        .trim()
-        .split("\n")
-        .map((line) => {
-          return JSON.parse(line);
-        })
-        // Filter out questions which give away their answers
-        .filter((item) => !item.label.includes(String(item.year)))
-        .filter((item) => !item.description.includes(String(item.year)))
-        .filter((item) => !item.description.includes(String("st century" || "nd century" || "th century")))
-        // Filter cards which have bad data as submitted in https://github.com/tom-james-watson/wikitrivia/discussions/2
-        .filter((item) => !(item.id in badCards));
-      setItems(items);
-    };
-
-    fetchGameData();
-  }, []);
-
-  React.useEffect(() => {
-    (async () => {
-      if (items !== null) {
-        setState(await createState(items));
+  useEffect(() => {
+    const initializeGameData = async () => {
+      try {
+        const response = await fetch("/data/items.json");
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const textData = await response.text(); // Fetch as text first
+        const jsonData = textData.split('\n').filter(line => line.trim()).map(JSON.parse); // Split by newline and parse each line
+  
+        const filteredItems: Item[] = jsonData
+          .filter((item: Item) => !item.label.includes(String(item.year)))
+          .filter((item: Item) => !item.description.includes(String(item.year)))
+          .filter((item: Item) =>
+            !["st century", "nd century", "th century"].some(term => item.description.includes(term))
+          )
+          .filter((item: Item) => !(item.id in badCards));
+  
+        const initialState = await createState(filteredItems);
+        setState(initialState);
         setLoaded(true);
+      } catch (error) {
+        console.error("Failed to load items:", error);
       }
-    })();
-  }, [items]);
+    };
+  
+    initializeGameData();
+  }, []);
+  
 
-  const resetGame = React.useCallback(() => {
-    (async () => {
-      if (items !== null) {
-        setState(await createState(items));
-      }
-    })();
-  }, [items]);
-
-  const [highscore, setHighscore] = React.useState<number>(
+  const [highscore, setHighscore] = useState<number>(
     Number(localStorage.getItem("highscore") ?? "0")
   );
 
@@ -63,7 +52,13 @@ export default function Game() {
     setHighscore(score);
   }, []);
 
-  if (!loaded || state === null) {
+  const resetGame = useCallback(async () => {
+    if (items) {
+      setState(await createState(items));
+    }
+  }, [items]);
+
+  if (!loaded || !state) {
     return <Loading />;
   }
 

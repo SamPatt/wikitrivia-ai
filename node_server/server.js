@@ -34,7 +34,7 @@ app.post('/groq-chat', async (req, res) => {
 async function getGroqChatCompletion(content) {
     return groq.chat.completions.create({
         messages: [{ role: "user", content }],
-        model: "llama3-8b-8192"
+        model: "llama3-70b-8192"
     });
 }
 

@@ -8,6 +8,8 @@ import Hearts from "./hearts";
 import GameOver from "./game-over";
 import { Item, PlayedItem } from "../types/item";
 
+// Credit for the Llama gifs goes to Bare Tree Media on Tenor: https://tenor.com/official/baretreemedia
+
 interface Props {
   highscore: number;
   resetGame: () => void;
@@ -23,6 +25,13 @@ export default function Board(props: Props) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
+  const [loadingGif, setLoadingGif] = useState("");
+  const [animateClass, setAnimateClass] = useState('');
+
+  const getRandomGif = () => {
+    const number = Math.floor(Math.random() * 6) + 1;
+    return `/images/llama${number}.gif`;
+  };
 
   const createPromptForLLM = (played: PlayedItem[], next: Item) => {
     const datePropIdMap: { [key: string]: string | undefined } = {
@@ -49,7 +58,8 @@ export default function Board(props: Props) {
     const nextCardLabel = next.label;
     const nextCardDescription = next.description;
 
-    const prompt = `You are playing a historical trivia game. Your task is to determine the year when this ocurred: "${nextEvent}: ${nextCardLabel}", described as "${nextCardDescription}". Please predict two possible years for when this event could have occurred, providing a brief explanation for each guess. Your explanation should begin with whether this event ocurred BCE or CE, then fill in the yearGuess field with a corresponding integer value. If the year is after 0 (AD or CE) respond with a single positive integer (examples: 14, 570, 1969). If the year is before 0 (BC or BCE) respond with a single negative integer, and do not include commas in the years (examples: -15000, -1350, -460). Conclude by selecting the year you believe is most accurate from your guesses. Do not include any additional text or comments in your response, respond solely with valid JSON - including a closing bracket - in the following JSON format, filling in the final "year" field with your best guess:
+    const prompt = `You are playing a historical trivia game. Your task is to determine the year when this ocurred: 
+    "${nextEvent}: ${nextCardLabel}", described as "${nextCardDescription}". Please predict two possible years for when this event could have occurred, providing a brief explanation for each guess. Your explanation should begin with whether this event ocurred BCE or CE, then fill in the yearGuess field with a corresponding integer value. If the year is after 0 (AD or CE) respond with a single positive integer (examples: 14, 570, 1969). If the year is before 0 (BC or BCE) respond with a single negative integer, and do not include commas in the years (examples: -15000, -1350, -460). Conclude by selecting the year you believe is most accurate from your guesses. Do not include any additional text or comments in your response, respond solely with valid JSON - including a closing bracket - in the following JSON format, filling in the final "year" field with your best guess:
     {
         "guesses": [
             {"explanation": , "yearOneGuess":},
@@ -148,6 +158,7 @@ export default function Board(props: Props) {
   }
 
   useEffect(() => {
+    setLoadingGif(getRandomGif());
     const aiDecisionProcess = async () => {
       if (
         state.next &&
@@ -163,7 +174,10 @@ export default function Board(props: Props) {
         try {
           const promptContent = createPromptForLLM(state.played, state.next);
           const predictedYear = await fetchAIResponse(promptContent);
-          console.log("Raw Predicted year from fetchAIResponse:", predictedYear);
+          console.log(
+            "Raw Predicted year from fetchAIResponse:",
+            predictedYear
+          );
           const position = findPositionByYear(state.played, predictedYear);
 
           const { correct, delta } = checkCorrect(
@@ -212,6 +226,19 @@ export default function Board(props: Props) {
   const score = React.useMemo(() => {
     return state.played.filter((item) => item.played.correct).length - 1;
   }, [state.played]);
+  
+  useEffect(() => {
+    const animationStyle = `growAndShake ${0.5 + score * 0.05}s ease-out`; // Adjusting duration based on score
+    setAnimateClass(animationStyle);
+
+  
+    const timer = setTimeout(() => {
+      setAnimateClass('');
+    }, 500 + score * 50); // Adjusting timeout to ensure complete animation
+  
+    return () => clearTimeout(timer);
+  }, [score]);
+  
 
   React.useLayoutEffect(() => {
     if (score > highscore) {
@@ -222,16 +249,32 @@ export default function Board(props: Props) {
   return (
     <div className={styles.wrapper}>
       <div className={styles.top}>
-        <Hearts lives={state.lives} />
-        {isLoading && <div className={styles.loading}>Loading...</div>}
-        {error && <div className={styles.error}>Error: {error}</div>}
-        {state.lives > 0 ? (
-          <>
-            <NextItemList next={state.next} />
-          </>
-        ) : (
-          <GameOver highscore={highscore} resetGame={resetGame} score={score} />
-        )}
+        <div className={styles.topLeft}>
+          {isLoading && (
+            <img src={loadingGif} alt="Loading" className={styles.loadingGif} />
+          )}
+          {state.lives === 0 && (
+            <img src='/images/sleep.gif' alt="Game Over" className={styles.gameOverGif} />
+          )}
+        </div>
+        <div className={styles.topCenter}>
+          <Hearts lives={state.lives} />
+          {error && <div className={styles.error}>Error: {error}</div>}
+          {state.lives > 0 ? (
+            <>
+              <NextItemList next={state.next} />
+            </>
+          ) : (
+            <GameOver
+              highscore={highscore}
+              resetGame={resetGame}
+              score={score}
+            />
+          )}
+        </div>
+        <div className={styles.topRight}>
+          <div className={`${styles.streak} ${animateClass}`}>Score: {score}</div>
+        </div>
       </div>
       <div id="bottom" className={styles.bottom}>
         <PlayedItemList
@@ -243,4 +286,5 @@ export default function Board(props: Props) {
       </div>
     </div>
   );
+  
 }
