@@ -33,3 +33,10 @@ yarn-error.log*
 
 # vercel
 .vercel
+
+# benchmark
+/bench/node_modules
+/bench/logs
+.env
+tsconfig.tsbuildinfo
+/bench/probe/

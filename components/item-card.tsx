@@ -10,6 +10,7 @@ type Props = {
   item: Item | PlayedItem;
   setFlippedId?: (flippedId: string | null) => void;
   flippedId?: null | string;
+  latest?: boolean;
 };
 
 const datePropIdMap: { [datePropId: string]: string } = {
@@ -40,7 +41,7 @@ function capitalize(str: string | undefined): string {
 }
 
 export default function ItemCard(props: Props) {
-  const { flippedId, index, item, setFlippedId } = props;
+  const { flippedId, item, setFlippedId, latest } = props;
 
   const flipped = item.id === flippedId;
 
@@ -66,6 +67,7 @@ export default function ItemCard(props: Props) {
       className={classNames(styles.itemCard, {
         [styles.played]: "played" in item,
         [styles.flipped]: flipped,
+        [styles.latest]: latest,
       })}
       onClick={() => {
         if ("played" in item && setFlippedId) {

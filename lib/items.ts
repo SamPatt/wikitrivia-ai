@@ -37,12 +37,12 @@ const playSound = (soundType: string) => {
     case 'correct':
       correctSound.currentTime = 0;
       correctSound.volume = 0.3;
-      correctSound.play();
+      correctSound.play().catch(() => {});
       break;
     case 'wrong':
       wrongSound.currentTime = 0;
       wrongSound.volume = 0.3;
-      wrongSound.play();
+      wrongSound.play().catch(() => {});
       break;
     default:
       console.log('No sound for this type');

@@ -13,7 +13,7 @@ export default function NextItemList(props: NextItemListProps) {
   return (
     <div className={styles.container}>
       <div className={styles.wrapper}>
-        <div className={styles.list}>
+        <div className={styles.list} data-next-slot>
           {next && (
             <ItemCard index={0} item={next} key={next.id} />
           )}

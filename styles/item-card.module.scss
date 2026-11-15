@@ -54,6 +54,20 @@
     }
   }
 
+  // The card that just landed keeps the queue's blue strip and a glow until the next one lands.
+  &.latest {
+    .front {
+      box-shadow: 0 0 0 3px #7cc8ee, 0 0 22px 4px rgba(124, 200, 238, 0.55);
+      transition: box-shadow 0.3s ease-in-out;
+
+      .bottom,
+      .bottom.correct,
+      .bottom.incorrect {
+        background-color: $primary;
+      }
+    }
+  }
+
   &.flipped {
     .front {
       z-index: -1;
@@ -93,7 +107,7 @@
       background-color: $primary;
       color: $text-light;
       border-radius: 0 0 $box-border-radius $box-border-radius;
-      transition: background-color 5s ease-in-out;
+      transition: background-color 0.3s ease-in-out;
 
       &:hover {
         background-color: #ad310b;
