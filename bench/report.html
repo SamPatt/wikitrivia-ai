@@ -1,0 +1,235 @@
+<title>Wikitrivia AI Speedrun</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a single reading column; the chart and table break out slightly wider. Timeline-card motif for the headline tiles. */
+:root {
+  --bg: #f6f7f8; --surface: #ffffff; --fg: #15181c; --fg-2: #4b525b; --muted: #747c86;
+  --rule: #dfe3e8; --grid: #eceff2; --accent: #0f6c8f; --accent-soft: #e3f0f5;
+  --good: #1f7a4d; --bad: #a3322a; --card-ok: #339966; --card-bad: #990000;
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a;
+  --display: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+  --body: "Inter", system-ui, -apple-system, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #16191d; --surface: #1e2227; --fg: #eef0f2; --fg-2: #b9c0c8; --muted: #8a929c;
+  --rule: #2f353c; --grid: #262b31; --accent: #5ab4d6; --accent-soft: #1d3440;
+  --good: #4cc38a; --bad: #e0736a; --s1: #3987e5; --s2: #d95926; --s3: #199e70; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #16191d; --surface: #1e2227; --fg: #eef0f2; --fg-2: #b9c0c8; --muted: #8a929c;
+  --rule: #2f353c; --grid: #262b31; --accent: #5ab4d6; --accent-soft: #1d3440;
+  --good: #4cc38a; --bad: #e0736a; --s1: #3987e5; --s2: #d95926; --s3: #199e70; color-scheme: dark; }
+
+body { background: var(--bg); color: var(--fg); font: 16px/1.6 var(--body); }
+.page { max-width: 980px; margin: 0 auto; padding-block: 40px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 44px; }
+.prose { max-width: 68ch; }
+h1, h2 { font-family: var(--display); text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+h1 { font-size: clamp(30px, 5vw, 46px); line-height: 1.1; }
+h2 { font-size: 24px; line-height: 1.25; margin-bottom: 10px; }
+p { margin: 0 0 12px; }
+.eyebrow { font: 600 12px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); margin-bottom: 14px; }
+.lede { font-size: 19px; color: var(--fg-2); margin-top: 16px; }
+code { font: 0.88em var(--mono); background: var(--accent-soft); padding: 1px 5px; border-radius: 4px; }
+
+/* headline tiles styled like the game's cards: label on top, year-strip footer */
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; }
+.tile { background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; min-width: 0; }
+.tile .body { padding: 16px 18px; flex: 1; display: grid; gap: 4px; align-content: start; }
+.tile .who { font: 600 13px/1.3 var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.tile .name { font: 700 19px/1.25 var(--display); }
+.tile .facts { font-size: 14px; color: var(--fg-2); }
+.tile .strip { background: var(--card-ok); color: #fff; font: 600 22px/1 var(--mono); padding: 12px 18px; display: flex; justify-content: space-between; align-items: baseline; font-variant-numeric: tabular-nums; }
+.tile .strip small { font: 500 12px var(--body); opacity: 0.9; }
+.tile.then .strip { background: #5c6670; }
+
+/* chart */
+.chart-wrap { background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 18px 18px 8px; position: relative; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 14px; color: var(--fg-2); margin-bottom: 6px; }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.legend i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+svg { display: block; width: 100%; height: auto; overflow: visible; }
+.axis text, .lbl { font: 12px var(--body); fill: var(--muted); }
+.lbl { fill: var(--fg-2); font-size: 12.5px; }
+.gridline { stroke: var(--grid); stroke-width: 1; }
+.dot { stroke: var(--surface); stroke-width: 2; cursor: pointer; }
+.dot:hover, .dot:focus { stroke: var(--fg); outline: none; }
+.tip { position: absolute; pointer-events: none; background: var(--fg); color: var(--bg); font-size: 13px; line-height: 1.45; padding: 8px 10px; border-radius: 6px; max-width: 240px; font-variant-numeric: tabular-nums; }
+.note { font-size: 13px; color: var(--muted); margin-top: 6px; }
+
+.findings { display: grid; gap: 18px; }
+.finding { display: grid; grid-template-columns: 4px 1fr; gap: 16px; }
+.finding::before { content: ""; background: var(--accent); border-radius: 2px; }
+.finding h3 { font: 700 17px/1.3 var(--display); margin: 0 0 4px; }
+.finding p { margin: 0; color: var(--fg-2); }
+
+.table-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; min-width: 760px; }
+th, td { padding: 9px 12px; text-align: right; border-bottom: 1px solid var(--rule); font-variant-numeric: tabular-nums; white-space: nowrap; }
+th { font: 600 12px var(--mono); text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); cursor: pointer; user-select: none; position: sticky; top: 0; background: var(--surface); }
+th:first-child, td:first-child { text-align: left; }
+td:first-child { white-space: normal; min-width: 210px; }
+th[aria-sort] { color: var(--accent); }
+tr:last-child td { border-bottom: 0; }
+.sw { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 8px; vertical-align: 1px; }
+.partial { color: var(--muted); font-size: 12px; }
+.pick td { background: var(--accent-soft); }
+pre { font: 13px/1.6 var(--mono); background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 14px 16px; overflow-x: auto; margin: 0; }
+@media (prefers-reduced-motion: no-preference) { .dot { transition: r 0.12s; } }
+</style>
+
+<main class="page">
+  <header class="prose">
+    <div class="eyebrow">Wikitrivia × AI · 2026 rematch</div>
+    <h1>The llama got fast. Now it’s about which model knows its dates.</h1>
+    <p class="lede">22 setups each played the same 12 seeded games of Wikitrivia (1,036 cards). Every setup got the same short prompt, and the games were scored by the app’s own placement rule with three lives.</p>
+  </header>
+
+  <section class="tiles" aria-label="Headline results">
+    <article class="tile then">
+      <div class="body">
+        <div class="who">2024 setup, rerun</div>
+        <div class="name">Llama 70B on Groq, two-guess prompt</div>
+        <div class="facts">87.0% of cards placed right · 183 ms per card · $0.26 per 1,000 cards</div>
+      </div>
+      <div class="strip"><span>30.3</span><small>avg score</small></div>
+    </article>
+    <article class="tile">
+      <div class="body">
+        <div class="who">Fastest good option</div>
+        <div class="name">gpt-oss-120b on Groq</div>
+        <div class="facts">88.9% placed right · 93 ms per card · a whole game takes 4.5 s of model time · $0.04 per 1,000 cards</div>
+      </div>
+      <div class="strip"><span>39.1</span><small>avg score</small></div>
+    </article>
+    <article class="tile">
+      <div class="body">
+        <div class="who">Most accurate</div>
+        <div class="name">Claude Opus 5.5, low effort</div>
+        <div class="facts">90.9% placed right · 150 ms per card · best game 74 · $1.47 per 1,000 cards (~6¢ a game)</div>
+      </div>
+      <div class="strip"><span>43.6</span><small>avg score</small></div>
+    </article>
+  </section>
+
+  <section>
+    <h2>Speed vs. accuracy</h2>
+    <p class="prose">Accuracy here is over the first 24 placements of every game, a card set every setup answered, Gemini’s partial runs included. Further up and further left is better. Hover a dot for details.</p>
+    <div class="chart-wrap" id="chartWrap">
+      <div class="legend">
+        <span><i style="background:var(--s1)"></i>Open model on fast chips (Groq, Cerebras, SambaNova)</span>
+        <span><i style="background:var(--s2)"></i>Lab API (Claude, GPT, Grok, Gemini)</span>
+        <span><i style="background:var(--s3)"></i>Your RTX 4090, free</span>
+      </div>
+      <svg id="chart" viewBox="0 0 760 430" role="img" aria-label="Scatter plot of median latency against early-game placement accuracy"></svg>
+      <div class="tip" id="tip" hidden></div>
+      <p class="note">Not plotted: the subscription CLIs, Claude Code at 2.2 s and Codex at 4.9 s per card. They answer correctly, but each call starts a whole agent process.</p>
+    </div>
+  </section>
+
+  <section class="findings">
+    <h2>What the runs showed</h2>
+    <div class="finding"><div><h3>Speed is solved. Groq still wins it.</h3><p>gpt-oss-120b answers in 93 ms at the median and reasons a little before answering. The Cerebras build of the same model is 160 ms. Most of the top tier answers in about 150 ms. GPT-5.6 Luna takes 0.3 s and Gemini 3.8 Flash 1.2 s.</p></div></div>
+    <div class="finding"><div><h3>A little thinking beats a bigger model.</h3><p>Same Llama 70B, same hardware: your 2024 prompt (two guesses with explanations, then pick one) scored 30.3. The bare “just the year” prompt scored 15.5. The models that win all reason briefly before answering.</p></div></div>
+    <div class="finding"><div><h3>The ceiling is Wikidata, not the models.</h3><p>On 122 of 1,036 cards, all four top models miss by more than 25 years, usually with the same textbook answer. The Sikh Empire is “founded” in 1733 in Wikidata, but every model says 1799. The House of Plantagenet is 1126 in Wikidata versus the 1154 everyone learns.</p></div></div>
+    <div class="finding"><div><h3>Free options exist, with catches.</h3><p>Qwen3.8 27B on your 4090 places 92.7% of early cards at 441 ms, free. Gemini Flash-Lite on your Google key’s free tier is about as accurate as Opus but limited to roughly 35 calls a minute. Gemma 3 1B is too small and gets 1 in 12 years exactly right.</p></div></div>
+    <div class="finding"><div><h3>Subscriptions aren’t the way.</h3><p>The Claude Code and Codex CLIs give good answers, but every card pays 2–5 s of agent start-up. The whole 22-setup benchmark cost $3.57 in OpenRouter credit. A game with gpt-oss costs about two-tenths of a cent.</p></div></div>
+    <div class="finding"><div><h3>Sonnet 5.5 can’t stop explaining.</h3><p>It ignored “reply with only the year” on 565 of 1,036 cards and wrote a sentence first. Once those replies were parsed properly it was right up with the leaders. Haiku 5.5 declined to date 16 biblical figures.</p></div></div>
+  </section>
+
+  <section>
+    <h2>Every setup</h2>
+    <p class="prose">Avg score is the mean streak over 12 games before the third wrong card. With one mistake able to end a run, scores swing a lot game to game, so the placement columns are the steadier signal. Click a column heading to sort.</p>
+    <div class="table-wrap"><table id="tbl"><thead><tr>
+      <th data-k="l">Setup</th><th data-k="score">Avg score</th><th data-k="place">Placed right</th><th data-k="early">Early cards</th><th data-k="exact">Exact year</th><th data-k="ms">Median ms</th><th data-k="p90">p90 ms</th><th data-k="cost">$ / 1k cards</th>
+    </tr></thead><tbody></tbody></table></div>
+  </section>
+
+  <section class="prose">
+    <h2>Run it</h2>
+    <p>The app is on branch <code>modernize-2026</code> of your fork. The model picker on the start screen holds the best setups above. Add <code>?model=gptoss120-groq&amp;autostart&amp;pace=600</code> to the URL to record a game at watchable speed.</p>
+    <pre>cp .env.example .env.local     # OPENROUTER_API_KEY, GOOGLE_API_KEY…
+npm install &amp;&amp; npm run dev
+cd bench &amp;&amp; node run.ts all &amp;&amp; node report.ts   # rerun the benchmark</pre>
+  </section>
+</main>
+
+<script type="application/json" id="data">[{"k":"opus-5.5","l":"Claude Opus 5.5","g":"lab","ms":150,"p90":184,"early":95.8,"place":90.9,"score":43.6,"cost":1.474,"full":true,"n":1036,"exact":67},{"k":"gemini-3.8-flash","l":"Gemini 3.8 Flash","g":"lab","ms":1200,"p90":1990,"early":95.1,"place":91.4,"score":39.6,"cost":0.348,"full":false,"n":795,"exact":65},{"k":"gptoss120-groq","l":"gpt-oss-120b @ Groq","g":"fast","ms":93,"p90":160,"early":94.4,"place":88.9,"score":39.1,"cost":0.043,"full":true,"n":1036,"exact":63},{"k":"gpt-5.6-luna-low","l":"GPT-5.6 Luna (low reasoning)","g":"lab","ms":304,"p90":440,"early":94.4,"place":89,"score":38.5,"cost":0.073,"full":true,"n":1036,"exact":66},{"k":"sonnet-5.5","l":"Claude Sonnet 5.5","g":"lab","ms":148,"p90":193,"early":94.4,"place":89.8,"score":38.3,"cost":0.77,"full":true,"n":1036,"exact":65},{"k":"gptoss120-groq-med","l":"gpt-oss-120b @ Groq (medium reasoning)","g":"fast","ms":84,"p90":146,"early":94.1,"place":89,"score":34.2,"cost":0.124,"full":true,"n":1036,"exact":64},{"k":"gptoss120-cerebras","l":"gpt-oss-120b @ Cerebras","g":"fast","ms":163,"p90":240,"early":93.1,"place":87,"score":32.4,"cost":0.08,"full":true,"n":1036,"exact":61},{"k":"gemma4-sambanova","l":"Gemma 4 31B @ SambaNova","g":"fast","ms":1679,"p90":2763,"early":93.8,"place":85.6,"score":31.7,"cost":0.037,"full":true,"n":1036,"exact":56},{"k":"llama70-groq-legacy","l":"Llama 3.3 70B @ Groq (2024 prompt)","g":"fast","ms":183,"p90":284,"early":91.3,"place":87,"score":30.3,"cost":0.258,"full":true,"n":1036,"exact":59},{"k":"ollama-qwen3.8","l":"Qwen3.8 27B (local 4090)","g":"local","ms":441,"p90":471,"early":92.7,"place":83.8,"score":29.7,"cost":0,"full":true,"n":1036,"exact":53},{"k":"qwen38-cerebras","l":"Qwen3.8 27B @ Cerebras","g":"fast","ms":121,"p90":163,"early":91.7,"place":83.2,"score":29.3,"cost":0.102,"full":true,"n":1036,"exact":53},{"k":"haiku-5.5","l":"Claude Haiku 5.5","g":"lab","ms":146,"p90":187,"early":92,"place":85.6,"score":28.8,"cost":0.013,"full":true,"n":1036,"exact":61},{"k":"gpt-5.6-luna","l":"GPT-5.6 Luna","g":"lab","ms":295,"p90":432,"early":92.4,"place":86.9,"score":27.6,"cost":0.021,"full":true,"n":1036,"exact":64},{"k":"minimax-flash-sambanova","l":"MiniMax M3.1 Flash @ SambaNova","g":"fast","ms":764,"p90":829,"early":90.3,"place":84.6,"score":27.4,"cost":0.071,"full":true,"n":1036,"exact":56},{"k":"gemini-3.5-flash-lite","l":"Gemini 3.5 Flash-Lite","g":"lab","ms":508,"p90":789,"early":95.1,"place":95.3,"score":27,"cost":null,"full":false,"n":371,"exact":65},{"k":"gptoss20-groq","l":"gpt-oss-20b @ Groq","g":"fast","ms":208,"p90":327,"early":90.3,"place":81.9,"score":25.3,"cost":0.026,"full":true,"n":1036,"exact":53},{"k":"gemini-3.1-flash-lite","l":"Gemini 3.1 Flash-Lite","g":"lab","ms":471,"p90":3564,"early":95.5,"place":95.5,"score":21,"cost":null,"full":false,"n":269,"exact":64},{"k":"grok-4.20-nr","l":"Grok 4.20 (non-reasoning)","g":"lab","ms":408,"p90":640,"early":86.1,"place":79,"score":18.6,"cost":null,"full":true,"n":1036,"exact":53},{"k":"gpt-5.4-nano","l":"GPT-5.4 nano","g":"lab","ms":305,"p90":416,"early":84.4,"place":78.6,"score":16.1,"cost":0.022,"full":true,"n":1036,"exact":53},{"k":"llama70-groq","l":"Llama 3.3 70B @ Groq","g":"fast","ms":173,"p90":283,"early":84.7,"place":82.2,"score":15.5,"cost":0.059,"full":true,"n":1036,"exact":58},{"k":"ollama-gemma3-1b","l":"Gemma 3 1B (local 4090)","g":"local","ms":483,"p90":505,"early":60.4,"place":39,"score":7.7,"cost":0,"full":true,"n":1036,"exact":8},{"k":"llama8-groq","l":"Llama 3.1 8B @ Groq","g":"fast","ms":85,"p90":131,"early":62.5,"place":54.9,"score":6.5,"cost":0.005,"full":true,"n":1036,"exact":34},{"k":"claude-cli-haiku","l":"Claude Code CLI (haiku, subscription)","g":"cli","ms":2224,"p90":3449,"early":100,"place":100,"score":2.4,"cost":0,"full":false,"n":40,"exact":57},{"k":"codex-cli","l":"Codex CLI (subscription)","g":"cli","ms":4938,"p90":7575,"early":100,"place":100,"score":2.3,"cost":0,"full":false,"n":39,"exact":59}]</script>
+<script>
+(() => {
+  const rows = JSON.parse(document.getElementById("data").textContent);
+  const color = { fast: "var(--s1)", lab: "var(--s2)", local: "var(--s3)", cli: "var(--muted)" };
+  const groupName = { fast: "Fast chips", lab: "Lab API", local: "Local 4090", cli: "Subscription CLI" };
+  const fmt = (v, d = 1) => (v === null || v === undefined ? "–" : v.toFixed(d));
+
+  // ---- scatter: log x (latency), linear y (early accuracy)
+  const svg = document.getElementById("chart"), NS = "http://www.w3.org/2000/svg";
+  const W = 760, H = 430, m = { l: 52, r: 20, t: 14, b: 44 };
+  const xMin = Math.log10(50), xMax = Math.log10(2500), yMin = 55, yMax = 100;
+  const X = (ms) => m.l + ((Math.log10(ms) - xMin) / (xMax - xMin)) * (W - m.l - m.r);
+  const Y = (v) => m.t + (1 - (v - yMin) / (yMax - yMin)) * (H - m.t - m.b);
+  const el = (tag, attrs, parent = svg) => { const n = document.createElementNS(NS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); parent.appendChild(n); return n; };
+  const ax = el("g", { class: "axis" });
+  for (const v of [60, 70, 80, 90, 100]) {
+    el("line", { x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v), class: "gridline" }, ax);
+    el("text", { x: m.l - 8, y: Y(v) + 4, "text-anchor": "end" }, ax).textContent = v + "%";
+  }
+  for (const v of [50, 100, 200, 500, 1000, 2000]) {
+    el("line", { x1: X(v), x2: X(v), y1: m.t, y2: H - m.b, class: "gridline" }, ax);
+    el("text", { x: X(v), y: H - m.b + 18, "text-anchor": "middle" }, ax).textContent = v >= 1000 ? v / 1000 + " s" : v + " ms";
+  }
+  el("text", { x: (m.l + W - m.r) / 2, y: H - 6, "text-anchor": "middle" }, ax).textContent = "Median time per card (log scale)";
+  const yl = el("text", { x: 14, y: (m.t + H - m.b) / 2, "text-anchor": "middle", transform: `rotate(-90 14 ${(m.t + H - m.b) / 2})` }, ax);
+  yl.textContent = "Early cards placed right";
+
+  const labelled = { "gptoss120-groq": [-4, 22, "end"], "opus-5.5": [0, -14, "middle"], "llama70-groq-legacy": [10, 16, "start"], "llama70-groq": [10, 4, "start"], "ollama-qwen3.8": [10, 14, "start"], "ollama-gemma3-1b": [-10, 4, "end"], "llama8-groq": [10, 4, "start"], "gemini-3.8-flash": [-10, -10, "end"], "gemini-3.5-flash-lite": [-10, -12, "end"], "grok-4.20-nr": [10, 4, "start"] };
+  const short = { "llama70-groq-legacy": "Llama 70B, 2024 prompt", "llama70-groq": "Llama 70B, bare prompt", "ollama-qwen3.8": "Qwen3.8 on 4090", "ollama-gemma3-1b": "Gemma 3 1B on 4090", "llama8-groq": "Llama 8B @ Groq", "gptoss120-groq": "gpt-oss-120b @ Groq", "opus-5.5": "Opus 5.5", "gemini-3.8-flash": "Gemini 3.8 Flash", "gemini-3.5-flash-lite": "Gemini Flash-Lite (free)", "grok-4.20-nr": "Grok 4.20" };
+  const tip = document.getElementById("tip"), wrap = document.getElementById("chartWrap");
+  const show = (r, evt) => {
+    tip.innerHTML = `<b>${r.l}</b><br>${groupName[r.g]}<br>${r.ms} ms median · ${r.p90} ms p90<br>${fmt(r.early)}% early · ${fmt(r.place)}% all cards<br>avg score ${fmt(r.score)}${r.full ? "" : " (partial run)"}`;
+    tip.hidden = false;
+    const b = wrap.getBoundingClientRect(), s = svg.getBoundingClientRect(), k = s.width / W;
+    let x = s.left - b.left + X(r.ms) * k + 14, y = s.top - b.top + Y(r.early) * k - 10;
+    if (x + 250 > b.width) x -= 270;
+    tip.style.left = x + "px"; tip.style.top = y + "px";
+  };
+  const pts = rows.filter((r) => r.g !== "cli").sort((a, b) => a.early - b.early);
+  for (const r of pts) {
+    const c = el("circle", { cx: X(r.ms), cy: Y(r.early), r: 6, fill: color[r.g], class: "dot", tabindex: 0, "aria-label": `${r.l}: ${r.ms} ms, ${r.early}%` });
+    c.addEventListener("mouseenter", (e) => show(r, e));
+    c.addEventListener("focus", (e) => show(r, e));
+    c.addEventListener("mouseleave", () => (tip.hidden = true));
+    c.addEventListener("blur", () => (tip.hidden = true));
+    if (labelled[r.k]) {
+      const [dx, dy, anchor] = labelled[r.k];
+      el("text", { x: X(r.ms) + dx, y: Y(r.early) + dy, "text-anchor": anchor, class: "lbl" }).textContent = short[r.k];
+    }
+  }
+
+  // ---- table
+  const tbody = document.querySelector("#tbl tbody");
+  let sortKey = "score", dir = -1;
+  const render = () => {
+    const sorted = [...rows].sort((a, b) => {
+      const va = a[sortKey], vb = b[sortKey];
+      if (typeof va === "string") return dir * va.localeCompare(vb);
+      return dir * ((va ?? Infinity) - (vb ?? Infinity));
+    });
+    tbody.innerHTML = sorted.map((r) => `<tr class="${r.k === "gptoss120-groq" ? "pick" : ""}">
+      <td><span class="sw" style="background:${color[r.g]}"></span>${r.l}${r.full ? "" : ` <span class="partial">partial · ${r.n} cards</span>`}</td>
+      <td>${fmt(r.score)}</td><td>${fmt(r.place)}%</td><td>${fmt(r.early)}%</td><td>${r.exact}%</td>
+      <td>${r.ms.toLocaleString()}</td><td>${r.p90.toLocaleString()}</td>
+      <td>${r.cost === null ? (r.k.startsWith("gemini") ? "free tier" : "not tracked") : r.cost === 0 ? "free" : "$" + r.cost.toFixed(3)}</td></tr>`).join("");
+    document.querySelectorAll("#tbl th").forEach((th) => th.toggleAttribute("aria-sort", th.dataset.k === sortKey));
+  };
+  document.querySelectorAll("#tbl th").forEach((th) => th.addEventListener("click", () => {
+    const k = th.dataset.k;
+    if (k === sortKey) dir = -dir; else { sortKey = k; dir = k === "ms" || k === "p90" || k === "cost" || k === "l" ? 1 : -1; }
+    render();
+  }));
+  render();
+})();
+</script>

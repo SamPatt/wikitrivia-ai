@@ -1,0 +1,13 @@
+{
+  "name": "wikitrivia-bench",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "deck": "node deck.ts",
+    "run": "node run.ts",
+    "report": "node report.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.8.0"
+  }
+}
